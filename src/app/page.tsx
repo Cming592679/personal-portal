@@ -1,65 +1,237 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import { Brain, Briefcase, Heart, Users, Pencil, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface DashboardData {
+  today: string;
+  tasks: { todo: number; doing: number };
+  habits: { done: number; total: number };
+  exercise: { done: number; target: number };
+  monthlyExpense: number;
+  monthlyBudget: number;
+  spiritContacts: number;
+  energy: { level: number; note: string } | null;
+  observation: string;
+}
+
+export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [observation, setObservation] = useState("");
+  const [energy, setEnergy] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/dashboard")
+      .then((r) => r.json())
+      .then(setData);
+  }, []);
+
+  const saveObservation = async () => {
+    if (!observation.trim()) return;
+    setSaving(true);
+    await fetch("/api/observations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problem: observation }),
+    });
+    setObservation("");
+    setSaving(false);
+    toast("已记录");
+    const r = await fetch("/api/dashboard");
+    setData(await r.json());
+  };
+
+  const saveEnergy = async (level: number) => {
+    setEnergy(level);
+    await fetch("/api/energy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level }),
+    });
+    const emoji = level === 3 ? "🟢" : level === 2 ? "🟡" : "🔴";
+    toast(`心力已记录 ${emoji}`);
+    const r = await fetch("/api/dashboard");
+    setData(await r.json());
+  };
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center h-full text-zinc-500">
+        加载中...
+      </div>
+    );
+  }
+
+  const quadrantCards = [
+    {
+      icon: Brain,
+      label: "心智",
+      href: "/mental",
+      stats: [
+        data.observation ? "今日已记" : "今日未记",
+      ],
+      color: "text-violet-400",
+      bg: "bg-violet-500/10",
+    },
+    {
+      icon: Briefcase,
+      label: "职业",
+      href: "/career",
+      stats: [
+        `待办 ${data.tasks.todo}`,
+        `进行中 ${data.tasks.doing}`,
+        `本月 ¥${data.monthlyExpense}`,
+      ],
+      color: "text-amber-400",
+      bg: "bg-amber-500/10",
+    },
+    {
+      icon: Heart,
+      label: "身体",
+      href: "/body",
+      stats: [
+        `习惯 ${data.habits.done}/${data.habits.total}`,
+        `运动 ${data.exercise.done}/${data.exercise.target}`,
+        data.energy
+          ? `心力 ${["🔴", "🟡", "🟢"][data.energy.level - 1]}`
+          : "心力未记",
+      ],
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10",
+    },
+    {
+      icon: Users,
+      label: "精神",
+      href: "/spirit",
+      stats: [`联系人 ${data.spiritContacts}`],
+      color: "text-rose-400",
+      bg: "bg-rose-500/10",
+    },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <h1 className="text-lg font-medium">{data.today}</h1>
+
+      {/* Four Quadrant Cards */}
+      <div className="grid grid-cols-4 gap-3">
+        {quadrantCards.map(({ icon: Icon, label, href, stats, color, bg }) => (
+          <a key={label} href={href}>
+            <Card className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className={cn("p-1.5 rounded-lg", bg)}>
+                    <Icon size={16} className={color} />
+                  </div>
+                  <span className="font-medium text-sm">{label}</span>
+                </div>
+                <div className="space-y-0.5">
+                  {stats.map((s, i) => (
+                    <p key={i} className="text-xs text-zinc-500">
+                      {s}
+                    </p>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </a>
+        ))}
+      </div>
+
+      {/* Today's Focus: Observation */}
+      <Card className="border-zinc-800 bg-zinc-900/50">
+        <CardContent className="p-5 space-y-4">
+          <h2 className="text-sm font-medium flex items-center gap-2">
+            <Pencil size={14} />
+            外部观察（今天注意到了什么问题？）
+          </h2>
+          <div className="flex gap-2">
+            <Input
+              value={observation}
+              onChange={(e) => setObservation(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveObservation()}
+              placeholder="一句话描述你注意到的现实问题..."
+              className="bg-zinc-800 border-zinc-700"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <Button
+              onClick={saveObservation}
+              disabled={saving || !observation.trim()}
+              size="sm"
+              className="shrink-0"
+            >
+              <Check size={14} className="mr-1" />
+              保存
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Energy Check */}
+      <Card className="border-zinc-800 bg-zinc-900/50">
+        <CardContent className="p-5 space-y-3">
+          <h2 className="text-sm font-medium">今日心力</h2>
+          <div className="flex gap-3">
+            {[
+              { level: 1, emoji: "🔴", label: "枯竭", desc: "连瘫着都累" },
+              { level: 2, emoji: "🟡", label: "勉强", desc: "能动但不想" },
+              { level: 3, emoji: "🟢", label: "还行", desc: "能做点事" },
+            ].map(({ level, emoji, label, desc }) => (
+              <button
+                key={level}
+                onClick={() => saveEnergy(level)}
+                className={cn(
+                  "flex-1 p-3 rounded-lg border text-center transition-colors",
+                  energy === level
+                    ? "border-white/30 bg-zinc-800"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/30"
+                )}
+              >
+                <p className="text-lg">
+                  {emoji} {label}
+                </p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">{desc}</p>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Weekly Overview */}
+      <Card className="border-zinc-800 bg-zinc-900/50">
+        <CardContent className="p-5 space-y-4">
+          <h2 className="text-sm font-medium">本周概览</h2>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>习惯打卡</span>
+                <span>{data.habits.done}/{data.habits.total}</span>
+              </div>
+              <Progress
+                value={(data.habits.done / Math.max(data.habits.total, 1)) * 100}
+                className="h-2 [&>div]:bg-emerald-500"
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>本月支出</span>
+                <span>¥{data.monthlyExpense} / ¥{data.monthlyBudget}</span>
+              </div>
+              <Progress
+                value={(data.monthlyExpense / data.monthlyBudget) * 100}
+                className="h-2 [&>div]:bg-amber-500"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
