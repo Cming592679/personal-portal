@@ -141,10 +141,8 @@ function ContactCard({ contact, onUpdate }: { contact: Contact; onUpdate: () => 
           </div>
 
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) fetchLogs(); }}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-300">
-                <MessageCircle size={14} className="mr-1" />联系记录
-              </Button>
+            <DialogTrigger className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 py-1 px-2 rounded">
+              <MessageCircle size={14} />联系记录
             </DialogTrigger>
             <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
               <DialogHeader>
