@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, Save, ClipboardList } from "lucide-react";
 
 interface Task {
   id: number;
@@ -59,12 +59,16 @@ export default function CareerPage() {
         <TabsList className="bg-zinc-900 border border-zinc-800">
           <TabsTrigger value="tasks">任务看板</TabsTrigger>
           <TabsTrigger value="finance">记账</TabsTrigger>
+          <TabsTrigger value="review">KPT 回顾</TabsTrigger>
         </TabsList>
         <TabsContent value="tasks" className="mt-4">
           <KanbanBoard />
         </TabsContent>
         <TabsContent value="finance" className="mt-4">
           <FinanceTracker />
+        </TabsContent>
+        <TabsContent value="review" className="mt-4">
+          <KptReview />
         </TabsContent>
       </Tabs>
     </div>
@@ -256,7 +260,7 @@ function FinanceTracker() {
         <CardContent className="p-4">
           <div className="flex gap-2 items-end">
             <div className="w-20">
-              <Select value={type} onValueChange={(v) => setType(v as "expense" | "income")}>
+              <Select value={type} onValueChange={(v) => v && setType(v as "expense" | "income")}>
                 <SelectTrigger className="bg-zinc-800 border-zinc-700">
                   <SelectValue />
                 </SelectTrigger>
@@ -273,7 +277,7 @@ function FinanceTracker() {
               placeholder="金额"
               className="w-24 bg-zinc-800 border-zinc-700"
             />
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={(v) => v && setCategory(v)}>
               <SelectTrigger className="w-24 bg-zinc-800 border-zinc-700">
                 <SelectValue />
               </SelectTrigger>
@@ -316,6 +320,106 @@ function FinanceTracker() {
       </div>
     </div>
   );
+}
+
+function KptReview() {
+  const [type, setType] = useState<"weekly" | "monthly">("weekly");
+  const [periodStart, setPeriodStart] = useState(getMonday());
+  const [keep, setKeep] = useState("");
+  const [problem, setProblem] = useState("");
+  const [tryText, setTryText] = useState("");
+  const [reviews, setReviews] = useState<{ type: string; period_start: string; keep_text: string; problem_text: string; try_text: string }[]>([]);
+
+  const fetchReviews = useCallback(async () => {
+    const r = await fetch(`/api/reviews?type=${type}`);
+    setReviews(await r.json());
+  }, [type]);
+
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+
+  const saveReview = async () => {
+    await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, period_start: periodStart, keep_text: keep, problem_text: problem, try_text: tryText }),
+    });
+    toast("回顾已保存");
+    fetchReviews();
+  };
+
+  const loadReview = (r: typeof reviews[0]) => {
+    setPeriodStart(r.period_start);
+    setKeep(r.keep_text);
+    setProblem(r.problem_text);
+    setTryText(r.try_text);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <Select value={type} onValueChange={(v) => v && setType(v as "weekly" | "monthly")}>
+          <SelectTrigger className="w-24 bg-zinc-800 border-zinc-700">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="weekly">本周</SelectItem>
+            <SelectItem value="monthly">本月</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          type="date"
+          value={periodStart}
+          onChange={(e) => setPeriodStart(e.target.value)}
+          className="w-40 bg-zinc-800 border-zinc-700 text-sm"
+        />
+        <Button onClick={saveReview} size="sm">
+          <Save size={14} className="mr-1" />保存
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
+        {[
+          { key: "keep", label: "Keep 继续保持", value: keep, setter: setKeep, placeholder: "这周/月做对了什么？哪些要继续？", color: "border-emerald-500/50" },
+          { key: "problem", label: "Problem 问题", value: problem, setter: setProblem, placeholder: "遇到了什么障碍？哪里不顺？", color: "border-amber-500/50" },
+          { key: "try", label: "Try 尝试", value: tryText, setter: setTryText, placeholder: "下周/月想尝试什么新做法？", color: "border-violet-500/50" },
+        ].map(({ key, label, value, setter, placeholder, color }) => (
+          <Card key={key} className={`border-zinc-800 bg-zinc-900/50 border-l-2 ${color}`}>
+            <CardContent className="p-4 space-y-2">
+              <h3 className="text-sm font-medium">{label}</h3>
+              <textarea
+                value={value}
+                onChange={(e) => setter(e.target.value)}
+                placeholder={placeholder}
+                rows={3}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm resize-none focus:outline-none focus:border-zinc-600"
+              />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* History */}
+      <div className="space-y-1">
+        <h3 className="text-xs text-zinc-500 font-medium mb-2">历史回顾</h3>
+        {reviews.map((r, i) => (
+          <button
+            key={i}
+            onClick={() => loadReview(r)}
+            className="w-full text-left p-2 rounded hover:bg-zinc-800/50 text-xs text-zinc-400 flex items-center gap-3"
+          >
+            <span>{r.period_start}</span>
+            <span className="text-zinc-600 truncate">{(r.keep_text + r.problem_text).slice(0, 40)}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function getMonday(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay() + 1);
+  return d.toISOString().split("T")[0];
 }
 
 function cn(...classes: (string | false | undefined)[]): string {
