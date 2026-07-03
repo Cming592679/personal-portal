@@ -72,6 +72,7 @@ function initSchema(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS habits (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      quadrant TEXT DEFAULT 'body' CHECK(quadrant IN ('mental','career','body','spirit')),
       frequency TEXT DEFAULT 'daily' CHECK(frequency IN ('daily','weekly')),
       target INTEGER DEFAULT 1,
       created_at TEXT DEFAULT (datetime('now','localtime'))
@@ -141,10 +142,10 @@ function initSchema(db: Database.Database) {
   // Seed default habits if none exist
   const habitCount = db.prepare('SELECT COUNT(*) as count FROM habits').get() as { count: number };
   if (habitCount.count === 0) {
-    const insert = db.prepare('INSERT INTO habits (name, frequency, target) VALUES (?, ?, ?)');
-    insert.run('散步20分钟', 'daily', 1);
-    insert.run('冥想', 'daily', 1);
-    insert.run('外部观察', 'daily', 1);
-    insert.run('力量训练', 'weekly', 3);
+    const insert = db.prepare('INSERT INTO habits (name, quadrant, frequency, target) VALUES (?, ?, ?, ?)');
+    insert.run('散步20分钟', 'body', 'daily', 1);
+    insert.run('力量训练', 'body', 'weekly', 3);
+    insert.run('外部观察', 'mental', 'daily', 1);
+    insert.run('冥想', 'body', 'daily', 1);
   }
 }

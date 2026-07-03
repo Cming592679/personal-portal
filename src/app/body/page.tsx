@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 interface Habit {
   id: number;
   name: string;
+  quadrant: string;
   frequency: string;
   today_value: number | null;
 }
@@ -55,7 +56,8 @@ function HabitTracker() {
 
   const fetchHabits = useCallback(async () => {
     const r = await fetch("/api/habits");
-    setHabits(await r.json());
+    const all = await r.json();
+    setHabits(all.filter((h: Habit) => h.quadrant === "body"));
   }, []);
 
   useEffect(() => { fetchHabits(); }, [fetchHabits]);
@@ -131,7 +133,7 @@ function ExerciseLogger() {
         <h2 className="text-sm font-medium">运动记录</h2>
 
         <div className="flex gap-2">
-          <Select value={type} onValueChange={setType}>
+          <Select value={type} onValueChange={(v) => v && setType(v)}>
             <SelectTrigger className="w-28 bg-zinc-800 border-zinc-700">
               <SelectValue />
             </SelectTrigger>
