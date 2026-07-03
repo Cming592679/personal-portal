@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   }
 
   const db = getDb();
-  const date = new Date().toISOString().split("T")[0];
+  const date = req.nextUrl.searchParams.get("date") ?? new Date().toISOString().split("T")[0];
   db.prepare(
     "INSERT OR REPLACE INTO energy_logs (date, level, note) VALUES (?, ?, ?)"
   ).run(date, level, note ?? "");

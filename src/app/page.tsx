@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Brain, Briefcase, Heart, Users, Dumbbell, BookOpen, Apple, Moon, Sunrise, Sparkles } from "lucide-react";
+import { Brain, Briefcase, Heart, Users, Dumbbell, BookOpen, Apple, Moon, Sunrise, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -235,14 +235,14 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <MonthCalendar calendarMap={stats.calendarMap ?? {}} />
+          <MonthCalendar calendarMap={stats.calendarMap ?? {}} habits={habits} onRefresh={refresh} />
         </>
       )}
     </div>
   );
 }
 
-function MonthCalendar({ calendarMap }: { calendarMap: StatsData["calendarMap"] }) {
+function MonthCalendar({ calendarMap, habits, onRefresh }: { calendarMap: StatsData["calendarMap"]; habits: Habit[]; onRefresh: () => void }) {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -255,40 +255,120 @@ function MonthCalendar({ calendarMap }: { calendarMap: StatsData["calendarMap"] 
   const todayStr = now.toISOString().split("T")[0];
   const dateStr = (d: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
+  const [editDate, setEditDate] = useState<string | null>(null);
+  const [editEnergy, setEditEnergy] = useState<number | null>(null);
+  const [editHabits, setEditHabits] = useState<Habit[]>([]);
+
+  const openEdit = async (date: string) => {
+    setEditDate(date);
+    const info = calendarMap[date];
+    setEditEnergy(info?.energy ?? null);
+    const r = await fetch(`/api/habits?date=${date}`);
+    const h = await r.json();
+    setEditHabits(h);
+  };
+
+  const toggleEditHabit = async (habitId: number) => {
+    await fetch("/api/habits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ habit_id: habitId, date: editDate }) });
+    const r = await fetch(`/api/habits?date=${editDate}`);
+    setEditHabits(await r.json());
+  };
+
+  const saveEditEnergy = async (level: number) => {
+    setEditEnergy(level);
+    await fetch(`/api/energy?date=${editDate}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ level }) });
+  };
+
+  const closeEdit = () => { setEditDate(null); onRefresh(); };
+
   const energyBg = (lvl: number | null) => {
     if (lvl === 1) return "rgba(248,113,113,0.3)"; if (lvl === 2) return "rgba(251,191,36,0.2)"; if (lvl === 3) return "rgba(52,211,153,0.2)"; return "transparent";
   };
 
   return (
-    <Card className="border-zinc-800/50 bg-zinc-900/60 rounded-2xl">
-      <CardContent className="p-6">
-        <h3 className="text-sm text-zinc-400 mb-4">{year}年{month + 1}月</h3>
-        <div className="grid grid-cols-7 gap-1.5">
-          {["一","二","三","四","五","六","日"].map(w => <div key={w} className="text-center text-xs text-zinc-500 py-1.5">{w}</div>)}
-          {days.map((d, i) => {
-            if (d === null) return <div key={`e${i}`} />;
-            const ds = dateStr(d);
-            const info = calendarMap[ds];
-            const isToday = ds === todayStr;
-            return (
-              <div key={ds}
-                className={cn("aspect-square rounded-lg flex flex-col items-center justify-center text-sm", isToday && "ring-2 ring-white/30")}
-                style={{ background: energyBg(info?.energy ?? null) }}
-                title={info ? `心力:${info.energy} ${info.habits.join(",")}` : ds}>
-                <span className={cn(isToday ? "text-white font-semibold" : "text-zinc-300")}>{d}</span>
-                {info && info.habits.length > 0 && (
-                  <div className="flex gap-0.5 mt-0.5">{info.habits.map(h => <span key={h} className="text-[10px]" title={h}>{HABIT_ICONS[h] ?? "✓"}</span>)}</div>
-                )}
+    <>
+      <Card className="border-zinc-800/50 bg-zinc-900/60 rounded-2xl">
+        <CardContent className="p-6">
+          <h3 className="text-sm text-zinc-400 mb-4">{year}年{month + 1}月</h3>
+          <div className="grid grid-cols-7 gap-1.5">
+            {["一","二","三","四","五","六","日"].map(w => <div key={w} className="text-center text-xs text-zinc-500 py-1.5">{w}</div>)}
+            {days.map((d, i) => {
+              if (d === null) return <div key={`e${i}`} />;
+              const ds = dateStr(d);
+              const info = calendarMap[ds];
+              const isToday = ds === todayStr;
+              return (
+                <div key={ds}
+                  onClick={() => openEdit(ds)}
+                  className={cn("aspect-square rounded-lg flex flex-col items-center justify-center text-sm cursor-pointer hover:ring-1 hover:ring-white/20 transition-all", isToday && "ring-2 ring-white/30")}
+                  style={{ background: energyBg(info?.energy ?? null) }}>
+                  <span className={cn(isToday ? "text-white font-semibold" : "text-zinc-300")}>{d}</span>
+                  {info && info.habits.length > 0 && (
+                    <div className="flex gap-0.5 mt-0.5">{info.habits.map(h => <span key={h} className="text-[10px]">{HABIT_ICONS[h] ?? "✓"}</span>)}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-5 mt-4 text-xs text-zinc-400">
+            <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-red-400/30 inline-block" />枯竭</span>
+            <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-amber-400/20 inline-block" />勉强</span>
+            <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-emerald-400/20 inline-block" />还行</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Day Edit Dialog */}
+      {editDate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={closeEdit} />
+          <Card className="relative z-10 w-80 border-zinc-700/50 bg-zinc-900 rounded-2xl shadow-xl">
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-medium text-zinc-200">{editDate}</h3>
+                <button onClick={closeEdit} className="text-zinc-500 hover:text-zinc-300"><X size={18} /></button>
               </div>
-            );
-          })}
+
+              {/* Energy selector */}
+              <div>
+                <p className="text-sm text-zinc-400 mb-2">状态</p>
+                <div className="flex gap-2">
+                  {[{ level: 1, e: "🔴", l: "枯竭" }, { level: 2, e: "🟡", l: "勉强" }, { level: 3, e: "🟢", l: "还行" }].map(({ level, e, l }) => (
+                    <button key={level} onClick={() => saveEditEnergy(level)}
+                      className={cn("flex-1 py-2 rounded-xl border text-sm transition-all",
+                        editEnergy === level ? "border-white/30 bg-zinc-700 text-white" : "border-zinc-700/50 bg-zinc-800/50 text-zinc-300 hover:border-zinc-600/50")}>
+                      {e} {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Habits */}
+              <div>
+                <p className="text-sm text-zinc-400 mb-2">习惯打卡</p>
+                <div className="space-y-1.5">
+                  {editHabits.map((h) => {
+                    const meta = HABIT_META[h.name] ?? { icon: Heart, desc: "", color: "text-zinc-400" };
+                    const Icon = meta.icon;
+                    const done = !!h.today_value;
+                    return (
+                      <button key={h.id} onClick={() => toggleEditHabit(h.id)}
+                        className={cn("w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left",
+                          done ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-zinc-800/50 border border-zinc-700/50 hover:border-zinc-600/50")}>
+                        <Icon size={18} className={done ? "text-emerald-400" : "text-zinc-400"} />
+                        <span className={cn("text-sm flex-1", done ? "text-emerald-300" : "text-zinc-300")}>{h.name}</span>
+                        <div className={cn("w-8 h-4 rounded-full transition-colors", done ? "bg-emerald-500/40" : "bg-zinc-600")}>
+                          <div className={cn("w-3 h-3 rounded-full bg-white shadow transition-transform mt-0.5", done ? "translate-x-4 ml-0.5" : "translate-x-0.5")} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex gap-5 mt-4 text-xs text-zinc-400">
-          <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-red-400/30 inline-block" />枯竭</span>
-          <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-amber-400/20 inline-block" />勉强</span>
-          <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-emerald-400/20 inline-block" />还行</span>
-        </div>
-      </CardContent>
-    </Card>
+      )}
+    </>
   );
 }
