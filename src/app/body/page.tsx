@@ -37,7 +37,6 @@ export default function BodyPage() {
         <h1 className="text-lg font-medium">身体</h1>
       </div>
 
-      <HabitCards />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ExerciseLogger />
         <BodyMetrics />

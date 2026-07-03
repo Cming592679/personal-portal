@@ -1,20 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Brain, Briefcase, Heart, Users } from "lucide-react";
+import { Brain, Briefcase, Heart, Users, Dumbbell, BookOpen, Apple, Moon, Sunrise, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, XAxis, YAxis,
 } from "recharts";
 
-const PIE_COLORS = ["#a78bfa", "#f472b6", "#60a5fa", "#fbbf24", "#34d399", "#fb923c", "#94a3b8"];
 const HABIT_ICONS: Record<string, string> = {
   "运动": "🏋️", "阅读": "📖", "健康饮食": "🥗", "早睡": "🌙", "早起": "☀️", "冥想": "🧘",
+};
+const HABIT_META: Record<string, { icon: typeof Heart; desc: string; color: string }> = {
+  "运动":   { icon: Dumbbell,  desc: "至少 20 分钟",       color: "text-emerald-400" },
+  "阅读":   { icon: BookOpen,  desc: "读几页也好",          color: "text-violet-400" },
+  "健康饮食": { icon: Apple,    desc: "控糖 · 少加工",       color: "text-rose-400" },
+  "早睡":   { icon: Moon,      desc: "23:00 前躺下",        color: "text-indigo-400" },
+  "早起":   { icon: Sunrise,   desc: "7:00 前起床",         color: "text-amber-400" },
+  "冥想":   { icon: Sparkles,  desc: "10 分钟静坐",         color: "text-cyan-400" },
 };
 
 interface DashboardData {
@@ -22,6 +29,9 @@ interface DashboardData {
   habits: { done: number; total: number }; exercise: { done: number; target: number };
   monthlyExpense: number; monthlyBudget: number; spiritContacts: number;
   energy: { level: number; note: string } | null;
+}
+interface Habit {
+  id: number; name: string; quadrant: string; today_value: number | null;
 }
 interface StatsData {
   expensePie: { category: string; total: number }[];
@@ -34,22 +44,29 @@ interface StatsData {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [stats, setStats] = useState<StatsData | null>(null);
+  const [habits, setHabits] = useState<Habit[]>([]);
   const [energy, setEnergy] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetch("/api/dashboard").then(r => r.json()).then(setData);
-    fetch("/api/stats").then(r => r.json()).then(setStats);
+  const refresh = useCallback(async () => {
+    const [d, s, h] = await Promise.all([
+      fetch("/api/dashboard").then(r => r.json()),
+      fetch("/api/stats").then(r => r.json()),
+      fetch("/api/habits").then(r => r.json()),
+    ]);
+    setData(d); setStats(s);
+    setHabits(h.filter((x: Habit) => x.quadrant === "body" || x.quadrant === "mental"));
   }, []);
 
-  const refresh = async () => {
-    const d = await fetch("/api/dashboard"); setData(await d.json());
-    const s = await fetch("/api/stats"); setStats(await s.json());
-  };
+  useEffect(() => { refresh(); }, [refresh]);
 
   const saveEnergy = async (level: number) => {
     setEnergy(level);
     await fetch("/api/energy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ level }) });
-    toast(`心力: ${level === 3 ? "🟢" : level === 2 ? "🟡" : "🔴"}`);
+    refresh();
+  };
+
+  const toggleHabit = async (id: number) => {
+    await fetch("/api/habits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ habit_id: id }) });
     refresh();
   };
 
@@ -63,7 +80,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
       <h1 className="text-lg font-medium text-zinc-300">{data.today}</h1>
 
       {/* Quadrant Cards */}
@@ -85,15 +102,16 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Energy + Overview */}
+      {/* Status + Habits row */}
       <div className="grid grid-cols-2 gap-4">
+        {/* Status */}
         <Card className="border-zinc-800/50 bg-zinc-900/40 rounded-2xl">
-          <CardContent className="p-5 space-y-3">
-            <h2 className="text-sm font-medium text-zinc-400">今日心力</h2>
+          <CardContent className="p-4 space-y-2.5">
+            <h2 className="text-sm font-medium text-zinc-400">状态</h2>
             <div className="flex gap-2">
               {[{ level: 1, e: "🔴", l: "枯竭" }, { level: 2, e: "🟡", l: "勉强" }, { level: 3, e: "🟢", l: "还行" }].map(({ level, e, l }) => (
                 <button key={level} onClick={() => saveEnergy(level)}
-                  className={cn("flex-1 py-2.5 rounded-xl border text-sm transition-all",
+                  className={cn("flex-1 py-2 rounded-xl border text-sm transition-all",
                     energy === level ? "border-white/20 bg-zinc-800" : "border-zinc-800/50 bg-zinc-900/30 hover:border-zinc-700/50")}>
                   {e} {l}
                 </button>
@@ -102,9 +120,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Weekly Overview */}
         <Card className="border-zinc-800/50 bg-zinc-900/40 rounded-2xl">
-          <CardContent className="p-5 space-y-3">
-            <h2 className="text-sm font-medium text-zinc-400">本周概览</h2>
+          <CardContent className="p-4 space-y-3">
+            <h2 className="text-sm font-medium text-zinc-400">本周</h2>
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-zinc-500"><span>习惯</span><span>{data.habits.done}/{data.habits.total}</span></div>
@@ -119,11 +138,42 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Habit Cards */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+        {habits.map((h) => {
+          const meta = HABIT_META[h.name] ?? { icon: Heart, desc: "", color: "text-zinc-400" };
+          const Icon = meta.icon;
+          const done = !!h.today_value;
+          return (
+            <Card
+              key={h.id}
+              onClick={() => toggleHabit(h.id)}
+              className={cn(
+                "border transition-all duration-200 cursor-pointer select-none rounded-2xl",
+                done
+                  ? "border-emerald-500/30 bg-emerald-500/5 shadow-sm shadow-emerald-500/5"
+                  : "border-zinc-800/50 bg-zinc-900/40 hover:border-zinc-700/50 hover:bg-zinc-900/60"
+              )}
+            >
+              <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+                <div className={cn("p-2 rounded-xl", done ? "bg-emerald-500/10" : "bg-zinc-800/50")}>
+                  <Icon size={18} className={done ? "text-emerald-400" : "text-zinc-500"} />
+                </div>
+                <p className={cn("text-xs font-medium", done ? "text-emerald-300" : "text-zinc-400")}>{h.name}</p>
+                <p className="text-[10px] text-zinc-600">{meta.desc}</p>
+                <div className={cn("w-8 h-4 rounded-full transition-colors relative mt-0.5", done ? "bg-emerald-500/40" : "bg-zinc-700/50")}>
+                  <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform", done ? "translate-x-4" : "translate-x-0.5")} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
       {/* Charts */}
       {stats && (
         <>
           <div className="grid grid-cols-3 gap-4">
-            {/* Donut */}
             <Card className="border-zinc-800/50 bg-zinc-900/40 rounded-2xl">
               <CardContent className="p-4 text-center">
                 <h3 className="text-xs text-zinc-500 mb-2">本月完成率</h3>
@@ -141,7 +191,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Radar */}
             <Card className="border-zinc-800/50 bg-zinc-900/40 rounded-2xl col-span-2">
               <CardContent className="p-4">
                 <h3 className="text-xs text-zinc-500 mb-1">维度达标</h3>
@@ -157,7 +206,6 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Bar Chart */}
           <Card className="border-zinc-800/50 bg-zinc-900/40 rounded-2xl">
             <CardContent className="p-4">
               <h3 className="text-xs text-zinc-500 mb-3">本月习惯完成</h3>
@@ -172,7 +220,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Monthly Calendar */}
           <MonthCalendar calendarMap={stats.calendarMap ?? {}} />
         </>
       )}
