@@ -6,6 +6,18 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Brain, Briefcase, Heart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis,
+  Tooltip, ResponsiveContainer,
+} from "recharts";
+
+const PIE_COLORS = ["#a78bfa", "#f472b6", "#60a5fa", "#fbbf24", "#34d399", "#fb923c", "#94a3b8", "#cbd5e1"];
+
+interface StatsData {
+  habitHeatmap: { date: string; done: number }[];
+  expensePie: { category: string; total: number }[];
+  energyTrend: { date: string; level: number }[];
+}
 
 interface DashboardData {
   today: string;
@@ -20,12 +32,12 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/api/dashboard")
-      .then((r) => r.json())
-      .then(setData);
+    fetch("/api/dashboard").then((r) => r.json()).then(setData);
+    fetch("/api/stats").then((r) => r.json()).then(setStats);
   }, []);
 
   const saveEnergy = async (level: number) => {
@@ -170,13 +182,78 @@ export default function DashboardPage() {
                 <span>¥{data.monthlyExpense} / ¥{data.monthlyBudget}</span>
               </div>
               <Progress
-                value={(data.monthlyExpense / data.monthlyBudget) * 100}
+                value={(data.monthlyExpense / Math.max(data.monthlyBudget, 1)) * 100}
                 className="h-2 [&>div]:bg-amber-500"
               />
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Charts */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-4">
+          {/* Habit Heatmap */}
+          <Card className="border-zinc-800 bg-zinc-900/50">
+            <CardContent className="p-4">
+              <h3 className="text-xs font-medium text-zinc-500 mb-3">习惯热力图 (30天)</h3>
+              <div className="flex flex-wrap gap-1">
+                {stats.habitHeatmap.map((d) => {
+                  const intensity = Math.min(d.done / 4, 1);
+                  return (
+                    <div
+                      key={d.date}
+                      className="w-3.5 h-3.5 rounded-sm"
+                      style={{ backgroundColor: `rgba(52, 211, 153, ${0.15 + intensity * 0.85})` }}
+                      title={`${d.date}: ${d.done} 完成`}
+                    />
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Expense Pie */}
+          <Card className="border-zinc-800 bg-zinc-900/50">
+            <CardContent className="p-4">
+              <h3 className="text-xs font-medium text-zinc-500 mb-1">本月支出分布</h3>
+              {stats.expensePie.length > 0 ? (
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie data={stats.expensePie} dataKey="total" nameKey="category" cx="50%" cy="50%" outerRadius={55} innerRadius={25}>
+                      {stats.expensePie.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8, fontSize: 12 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-xs text-zinc-600 py-8 text-center">暂无数据</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Energy Trend */}
+          <Card className="border-zinc-800 bg-zinc-900/50 col-span-2">
+            <CardContent className="p-4">
+              <h3 className="text-xs font-medium text-zinc-500 mb-1">心力趋势 (30天)</h3>
+              {stats.energyTrend.length > 1 ? (
+                <ResponsiveContainer width="100%" height={120}>
+                  <LineChart data={stats.energyTrend}>
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#71717a" }} />
+                    <YAxis domain={[0, 4]} ticks={[1, 2, 3]} tick={{ fontSize: 10, fill: "#71717a" }} />
+                    <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8, fontSize: 12 }} />
+                    <Line type="monotone" dataKey="level" stroke="#a78bfa" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-xs text-zinc-600 py-4 text-center">需要至少 2 天数据</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

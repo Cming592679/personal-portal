@@ -60,6 +60,7 @@ export default function CareerPage() {
           <TabsTrigger value="tasks">任务看板</TabsTrigger>
           <TabsTrigger value="finance">记账</TabsTrigger>
           <TabsTrigger value="review">KPT 回顾</TabsTrigger>
+          <TabsTrigger value="subscriptions">订阅</TabsTrigger>
         </TabsList>
         <TabsContent value="tasks" className="mt-4">
           <KanbanBoard />
@@ -69,6 +70,9 @@ export default function CareerPage() {
         </TabsContent>
         <TabsContent value="review" className="mt-4">
           <KptReview />
+        </TabsContent>
+        <TabsContent value="subscriptions" className="mt-4">
+          <SubscriptionTracker />
         </TabsContent>
       </Tabs>
     </div>
@@ -315,6 +319,80 @@ function FinanceTracker() {
             <span className={cn("font-medium", t.type === "expense" ? "text-red-400" : "text-emerald-400")}>
               {t.type === "expense" ? "-" : "+"}¥{t.amount}
             </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SubscriptionTracker() {
+  const [subs, setSubs] = useState<{ id: number; name: string; amount: number; cycle: string; next_payment: string }[]>([]);
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [cycle, setCycle] = useState("monthly");
+
+  const fetchSubs = useCallback(async () => {
+    const r = await fetch("/api/subscriptions");
+    setSubs(await r.json());
+  }, []);
+
+  useEffect(() => { fetchSubs(); }, [fetchSubs]);
+
+  const addSub = async () => {
+    if (!name || !amount) return;
+    await fetch("/api/subscriptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, amount: parseFloat(amount), cycle }),
+    });
+    setName(""); setAmount("");
+    toast("订阅已添加");
+    fetchSubs();
+  };
+
+  const deleteSub = async (id: number) => {
+    await fetch(`/api/subscriptions/${id}`, { method: "DELETE" });
+    fetchSubs();
+  };
+
+  const totalMonthly = subs.reduce((s, sub) => s + sub.amount, 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 text-sm">
+        <span className="text-zinc-500">月均</span>
+        <span className="font-medium text-amber-400">¥{totalMonthly}</span>
+      </div>
+
+      <div className="flex gap-2">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="服务名" className="w-32 bg-zinc-800 border-zinc-700" />
+        <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="金额" className="w-24 bg-zinc-800 border-zinc-700" />
+        <Select value={cycle} onValueChange={(v) => v && setCycle(v)}>
+          <SelectTrigger className="w-24 bg-zinc-800 border-zinc-700">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="monthly">月付</SelectItem>
+            <SelectItem value="yearly">年付</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button onClick={addSub} size="sm" disabled={!name || !amount} className="shrink-0">
+          <Plus size={14} className="mr-1" />添加
+        </Button>
+      </div>
+
+      <div className="space-y-1">
+        {subs.map((s) => (
+          <div key={s.id} className="flex items-center justify-between py-2 px-3 rounded text-sm hover:bg-zinc-900/50">
+            <span>{s.name}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-zinc-500">{s.cycle === "monthly" ? "月付" : "年付"}</span>
+              <span className="text-amber-400">¥{s.amount}</span>
+              <button onClick={() => deleteSub(s.id)} className="text-zinc-600 hover:text-red-400">
+                <Trash2 size={12} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

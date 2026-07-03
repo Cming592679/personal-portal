@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Heart, Check, Plus } from "lucide-react";
+import { Heart, Check, Plus, Scale, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Habit {
@@ -46,6 +46,7 @@ export default function BodyPage() {
         <HabitTracker />
         <ExerciseLogger />
       </div>
+      <BodyMetrics />
       <EnergyHistory />
     </div>
   );
@@ -173,6 +174,67 @@ function ExerciseLogger() {
             </div>
           ))}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BodyMetrics() {
+  const [weight, setWeight] = useState("");
+  const [sleep, setSleep] = useState("");
+  const [metrics, setMetrics] = useState<{ date: string; weight: number | null; sleep_hours: number | null }[]>([]);
+
+  const fetchMetrics = useCallback(async () => {
+    const r = await fetch("/api/metrics");
+    setMetrics(await r.json());
+  }, []);
+
+  useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
+
+  const save = async () => {
+    await fetch("/api/metrics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        weight: weight ? parseFloat(weight) : null,
+        sleep_hours: sleep ? parseFloat(sleep) : null,
+      }),
+    });
+    setWeight(""); setSleep("");
+    toast("已记录");
+    fetchMetrics();
+  };
+
+  return (
+    <Card className="border-zinc-800 bg-zinc-900/50">
+      <CardContent className="p-4 space-y-3">
+        <h2 className="text-sm font-medium">身体数据</h2>
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <label className="text-[10px] text-zinc-500 flex items-center gap-1 mb-1">
+              <Scale size={12} />体重 (kg)
+            </label>
+            <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="70" className="bg-zinc-800 border-zinc-700" />
+          </div>
+          <div className="flex-1">
+            <label className="text-[10px] text-zinc-500 flex items-center gap-1 mb-1">
+              <Moon size={12} />睡眠 (小时)
+            </label>
+            <Input type="number" value={sleep} onChange={(e) => setSleep(e.target.value)} placeholder="7.5" className="bg-zinc-800 border-zinc-700" />
+          </div>
+          <Button onClick={save} size="sm" className="shrink-0"><Plus size={14} className="mr-1" />记录</Button>
+        </div>
+        {metrics.length > 0 && (
+          <div className="space-y-1 max-h-32 overflow-auto">
+            {metrics.slice(0, 10).map((m) => (
+              <div key={m.date} className="flex items-center gap-4 text-xs px-2 py-1">
+                <span className="text-zinc-500 w-16">{m.date.slice(5)}</span>
+                {m.weight && <span>{m.weight}kg</span>}
+                {m.sleep_hours && <span>{m.sleep_hours}h 睡眠</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

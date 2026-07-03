@@ -9,6 +9,7 @@ import {
   Heart,
   Users,
   LayoutDashboard,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
@@ -18,6 +19,8 @@ const navItems = [
   { href: "/body", label: "身体", icon: Heart },
   { href: "/spirit", label: "精神", icon: Users },
 ];
+
+const bottomItem = { href: "/settings", label: "设置", icon: Settings };
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -43,6 +46,20 @@ export function Sidebar() {
           </Link>
         );
       })}
+      <div className="flex-1" />
+      <Link
+        href={bottomItem.href}
+        className={cn(
+          "flex flex-col items-center gap-0.5 p-2 rounded-lg w-14 text-[10px] transition-colors",
+          pathname.startsWith(bottomItem.href)
+            ? "bg-zinc-800 text-white"
+            : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900"
+        )}
+        title={bottomItem.label}
+      >
+        <Settings size={20} />
+        <span>{bottomItem.label}</span>
+      </Link>
     </aside>
   );
 }
