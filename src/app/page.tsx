@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Brain, Briefcase, Heart, Users, Pencil, Check } from "lucide-react";
+import { Brain, Briefcase, Heart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardData {
@@ -18,35 +16,17 @@ interface DashboardData {
   monthlyBudget: number;
   spiritContacts: number;
   energy: { level: number; note: string } | null;
-  observation: string;
 }
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [observation, setObservation] = useState("");
   const [energy, setEnergy] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/dashboard")
       .then((r) => r.json())
       .then(setData);
   }, []);
-
-  const saveObservation = async () => {
-    if (!observation.trim()) return;
-    setSaving(true);
-    await fetch("/api/observations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problem: observation }),
-    });
-    setObservation("");
-    setSaving(false);
-    toast("已记录");
-    const r = await fetch("/api/dashboard");
-    setData(await r.json());
-  };
 
   const saveEnergy = async (level: number) => {
     setEnergy(level);
@@ -74,9 +54,7 @@ export default function DashboardPage() {
       icon: Brain,
       label: "心智",
       href: "/mental",
-      stats: [
-        data.observation ? "今日已记" : "今日未记",
-      ],
+      stats: ["知识库 · 笔记"],
       color: "text-violet-400",
       bg: "bg-violet-500/10",
     },
@@ -118,7 +96,6 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
       <h1 className="text-lg font-medium">{data.today}</h1>
 
       {/* Four Quadrant Cards */}
@@ -135,9 +112,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-0.5">
                   {stats.map((s, i) => (
-                    <p key={i} className="text-xs text-zinc-500">
-                      {s}
-                    </p>
+                    <p key={i} className="text-xs text-zinc-500">{s}</p>
                   ))}
                 </div>
               </CardContent>
@@ -145,34 +120,6 @@ export default function DashboardPage() {
           </a>
         ))}
       </div>
-
-      {/* Today's Focus: Observation */}
-      <Card className="border-zinc-800 bg-zinc-900/50">
-        <CardContent className="p-5 space-y-4">
-          <h2 className="text-sm font-medium flex items-center gap-2">
-            <Pencil size={14} />
-            外部观察（今天注意到了什么问题？）
-          </h2>
-          <div className="flex gap-2">
-            <Input
-              value={observation}
-              onChange={(e) => setObservation(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && saveObservation()}
-              placeholder="一句话描述你注意到的现实问题..."
-              className="bg-zinc-800 border-zinc-700"
-            />
-            <Button
-              onClick={saveObservation}
-              disabled={saving || !observation.trim()}
-              size="sm"
-              className="shrink-0"
-            >
-              <Check size={14} className="mr-1" />
-              保存
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Energy Check */}
       <Card className="border-zinc-800 bg-zinc-900/50">
@@ -194,9 +141,7 @@ export default function DashboardPage() {
                     : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/30"
                 )}
               >
-                <p className="text-lg">
-                  {emoji} {label}
-                </p>
+                <p className="text-lg">{emoji} {label}</p>
                 <p className="text-[10px] text-zinc-500 mt-0.5">{desc}</p>
               </button>
             ))}
