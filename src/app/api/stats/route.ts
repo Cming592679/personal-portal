@@ -3,62 +3,55 @@ import { getDb } from "@/lib/db";
 
 export async function GET() {
   const db = getDb();
-
-  // Habit heatmap: last 30 days
-  const habitHeatmap = db.prepare(`
-    SELECT date, COUNT(*) as done
-    FROM habit_logs
-    WHERE date >= date('now', '-30 days')
-    GROUP BY date ORDER BY date
-  `).all();
+  const today = new Date();
+  const monthStart = today.toISOString().slice(0, 8) + "01";
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysSoFar = Math.min(today.getDate(), daysInMonth);
 
   // Expense by category (this month)
   const expensePie = db.prepare(`
     SELECT category, COALESCE(SUM(amount), 0) as total
-    FROM transactions
-    WHERE type = 'expense' AND date >= date('now', 'start of month')
+    FROM transactions WHERE type = 'expense' AND date >= ?
     GROUP BY category ORDER BY total DESC
-  `).all();
+  `).all(monthStart);
 
-  // Energy trend: last 30 days
-  const energyTrend = db.prepare(`
-    SELECT date, level FROM energy_logs
-    WHERE date >= date('now', '-30 days')
-    ORDER BY date
-  `).all();
-
-  // Calendar: current month energy + habits per day
-  const monthStart = new Date().toISOString().slice(0, 8) + "01";
-  const energyMap = db.prepare(`
-    SELECT date, level FROM energy_logs WHERE date >= ? ORDER BY date
-  `).all(monthStart) as { date: string; level: number }[];
-
+  // Energy + habits per day for calendar
+  const energyMap = db.prepare("SELECT date, level FROM energy_logs WHERE date >= ?").all(monthStart) as { date: string; level: number }[];
   const habitsAll = db.prepare("SELECT id, name FROM habits").all() as { id: number; name: string }[];
-  const habitLogsMonth = db.prepare(`
-    SELECT hl.date, hl.habit_id FROM habit_logs hl WHERE hl.date >= ?
-  `).all(monthStart) as { date: string; habit_id: number }[];
+  const habitLogsMonth = db.prepare("SELECT hl.date, hl.habit_id FROM habit_logs hl WHERE hl.date >= ?").all(monthStart) as { date: string; habit_id: number }[];
 
-  // Group habit logs by date
+  // Calendar map
   const habitByDate: Record<string, string[]> = {};
   for (const log of habitLogsMonth) {
     if (!habitByDate[log.date]) habitByDate[log.date] = [];
     const h = habitsAll.find((h) => h.id === log.habit_id);
     if (h) habitByDate[log.date].push(h.name);
   }
-
-  // Build calendar map
   const calendarMap: Record<string, { energy: number | null; habits: string[] }> = {};
-  for (const e of energyMap) {
-    calendarMap[e.date] = { energy: e.level, habits: habitByDate[e.date] ?? [] };
-  }
-  // Also include dates that only have habits
+  for (const e of energyMap) calendarMap[e.date] = { energy: e.level, habits: habitByDate[e.date] ?? [] };
   for (const [date, names] of Object.entries(habitByDate)) {
     if (!calendarMap[date]) calendarMap[date] = { energy: null, habits: names };
   }
 
+  // Per-habit completion (days done / days so far)
+  const habitCompletion = habitsAll.map((h) => {
+    const done = habitLogsMonth.filter((l) => l.habit_id === h.id).length;
+    return { name: h.name, done, total: daysSoFar, rate: Math.round((done / daysSoFar) * 100) };
+  });
+
+  // Overall rate
+  const totalPossible = habitsAll.length * daysSoFar;
+  const totalDone = habitLogsMonth.length;
+  const overallRate = totalPossible > 0 ? Math.round((totalDone / totalPossible) * 100) : 0;
+
+  // Monthly bar: per-habit daily count
+  const monthlyBar = habitCompletion.map((h) => ({ name: h.name, 完成: h.done, 未完成: daysSoFar - h.done }));
+
   return NextResponse.json({
-    habitHeatmap,
     expensePie,
     calendarMap,
+    habitCompletion,
+    overallRate,
+    monthlyBar,
   });
 }

@@ -143,9 +143,11 @@ function initSchema(db: Database.Database) {
   const habitCount = db.prepare('SELECT COUNT(*) as count FROM habits').get() as { count: number };
   if (habitCount.count === 0) {
     const insert = db.prepare('INSERT INTO habits (name, quadrant, frequency, target) VALUES (?, ?, ?, ?)');
-    insert.run('散步20分钟', 'body', 'daily', 1);
-    insert.run('力量训练', 'body', 'weekly', 3);
-    insert.run('外部观察', 'mental', 'daily', 1);
+    insert.run('运动', 'body', 'daily', 1);
+    insert.run('阅读', 'mental', 'daily', 1);
+    insert.run('健康饮食', 'body', 'daily', 1);
+    insert.run('早睡', 'body', 'daily', 1);
+    insert.run('早起', 'body', 'daily', 1);
     insert.run('冥想', 'body', 'daily', 1);
   }
 }
