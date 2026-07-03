@@ -7,16 +7,19 @@ import { toast } from "sonner";
 import { Brain, Briefcase, Heart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis,
-  Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from "recharts";
 
 const PIE_COLORS = ["#a78bfa", "#f472b6", "#60a5fa", "#fbbf24", "#34d399", "#fb923c", "#94a3b8", "#cbd5e1"];
 
+const HABIT_ICONS: Record<string, string> = {
+  "散步20分钟": "🚶", "力量训练": "🏋️", "冥想": "🧘", "外部观察": "👁️",
+};
+
 interface StatsData {
   habitHeatmap: { date: string; done: number }[];
   expensePie: { category: string; total: number }[];
-  energyTrend: { date: string; level: number }[];
+  calendarMap: Record<string, { energy: number | null; habits: string[] }>;
 }
 
 interface DashboardData {
@@ -234,26 +237,87 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Energy Trend */}
-          <Card className="border-zinc-800 bg-zinc-900/50 col-span-2">
-            <CardContent className="p-4">
-              <h3 className="text-xs font-medium text-zinc-500 mb-1">心力趋势 (30天)</h3>
-              {stats.energyTrend.length > 1 ? (
-                <ResponsiveContainer width="100%" height={120}>
-                  <LineChart data={stats.energyTrend}>
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#71717a" }} />
-                    <YAxis domain={[0, 4]} ticks={[1, 2, 3]} tick={{ fontSize: 10, fill: "#71717a" }} />
-                    <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8, fontSize: 12 }} />
-                    <Line type="monotone" dataKey="level" stroke="#a78bfa" strokeWidth={2} dot={{ r: 3 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-xs text-zinc-600 py-4 text-center">需要至少 2 天数据</p>
-              )}
-            </CardContent>
-          </Card>
+          {/* Monthly Calendar */}
+          <MonthCalendar calendarMap={stats.calendarMap} />
         </div>
       )}
     </div>
+  );
+}
+
+function MonthCalendar({ calendarMap }: { calendarMap: StatsData["calendarMap"] }) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const days: (number | null)[] = [];
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  for (let i = 0; i < startOffset; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) days.push(d);
+
+  const todayStr = now.toISOString().split("T")[0];
+
+  const energyBg = (level: number | null) => {
+    if (level === 1) return "rgba(248, 113, 113, 0.3)";
+    if (level === 2) return "rgba(251, 191, 36, 0.25)";
+    if (level === 3) return "rgba(52, 211, 153, 0.25)";
+    return "transparent";
+  };
+
+  const dateStr = (d: number) => {
+    const m = String(month + 1).padStart(2, "0");
+    const day = String(d).padStart(2, "0");
+    return `${year}-${m}-${day}`;
+  };
+
+  const weekNames = ["一", "二", "三", "四", "五", "六", "日"];
+
+  return (
+    <Card className="border-zinc-800 bg-zinc-900/50 col-span-2">
+      <CardContent className="p-4">
+        <h3 className="text-xs font-medium text-zinc-500 mb-3">{year}年{month + 1}月</h3>
+        <div className="grid grid-cols-7 gap-0.5">
+          {weekNames.map((w) => (
+            <div key={w} className="text-center text-[10px] text-zinc-600 py-1">{w}</div>
+          ))}
+          {days.map((d, i) => {
+            if (d === null) return <div key={`e${i}`} />;
+            const ds = dateStr(d);
+            const info = calendarMap[ds];
+            const isToday = ds === todayStr;
+            return (
+              <div
+                key={ds}
+                className={cn(
+                  "aspect-square rounded-md flex flex-col items-center justify-center text-xs relative",
+                  isToday && "ring-1 ring-white/30"
+                )}
+                style={{ background: energyBg(info?.energy ?? null) }}
+                title={info ? `心力:${info.energy} 习惯:${info.habits.join(",")}` : ds}
+              >
+                <span className={cn("text-[11px]", isToday ? "text-white font-medium" : "text-zinc-400")}>{d}</span>
+                {info && info.habits.length > 0 && (
+                  <div className="flex gap-0.5 mt-0.5">
+                    {info.habits.map((h) => (
+                      <span key={h} className="text-[8px] leading-none" title={h}>
+                        {HABIT_ICONS[h] ?? "✓"}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-4 mt-3 text-[10px] text-zinc-600">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-400/30 inline-block" />枯竭</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-400/25 inline-block" />勉强</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-400/25 inline-block" />还行</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
