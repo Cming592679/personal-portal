@@ -170,53 +170,75 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Charts */}
+      {/* Monthly Stats */}
       {stats && (
         <>
-          <div className="grid grid-cols-3 gap-4">
-            <Card className="border-zinc-800/50 bg-zinc-900/40 rounded-2xl">
-              <CardContent className="p-4 text-center">
-                <h3 className="text-xs text-zinc-500 mb-2">本月完成率</h3>
-                <ResponsiveContainer width="100%" height={140}>
-                  <PieChart>
-                    <Pie data={[{ v: stats.overallRate }, { v: 100 - stats.overallRate }]} dataKey="v"
-                      cx="50%" cy="50%" innerRadius={35} outerRadius={50} startAngle={90} endAngle={-270}>
-                      <Cell fill="#34d399" /><Cell fill="#27272a" />
-                    </Pie>
-                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fill="#d4d4d8" fontSize={20} fontWeight={600}>
-                      {stats.overallRate}%
-                    </text>
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card className="border-zinc-800/50 bg-zinc-900/40 rounded-2xl col-span-2">
-              <CardContent className="p-4">
-                <h3 className="text-xs text-zinc-500 mb-1">维度达标</h3>
-                <ResponsiveContainer width="100%" height={160}>
-                  <RadarChart data={stats.habitCompletion}>
-                    <PolarGrid stroke="#3f3f46" />
-                    <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: "#a1a1aa" }} />
-                    <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar dataKey="rate" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} strokeWidth={1.5} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
           <Card className="border-zinc-800/50 bg-zinc-900/40 rounded-2xl">
-            <CardContent className="p-4">
-              <h3 className="text-xs text-zinc-500 mb-3">本月习惯完成</h3>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={stats.monthlyBar} barSize={24}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
-                  <YAxis hide />
-                  <Bar dataKey="完成" stackId="a" fill="#34d399" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="未完成" stackId="a" fill="#27272a" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="p-5 space-y-5">
+              <h2 className="text-sm font-medium text-zinc-400">本月统计</h2>
+
+              {/* Stat numbers */}
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: "记录天数", value: Object.keys(stats.calendarMap ?? {}).length, unit: "天" },
+                  { label: "今日完成", value: habits.filter(h => !!h.today_value).length, unit: `/${habits.length}` },
+                  { label: "月均完成率", value: stats.overallRate, unit: "%" },
+                ].map(({ label, value, unit }) => (
+                  <div key={label} className="text-center p-3 rounded-xl bg-zinc-800/30">
+                    <p className="text-2xl font-semibold text-zinc-200">{value}<span className="text-sm text-zinc-500 ml-0.5">{unit}</span></p>
+                    <p className="text-[11px] text-zinc-500 mt-1">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Donut + Radar */}
+              <div className="grid grid-cols-5 gap-4">
+                <Card className="col-span-2 border-0 bg-transparent shadow-none">
+                  <CardContent className="p-2 text-center">
+                    <h3 className="text-xs text-zinc-500 mb-1">完成率</h3>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <PieChart>
+                        <Pie data={[{ v: stats.overallRate }, { v: 100 - stats.overallRate }]} dataKey="v"
+                          cx="50%" cy="50%" innerRadius={40} outerRadius={58}
+                          startAngle={90} endAngle={-270}
+                          cornerRadius={8} stroke="none">
+                          <Cell fill="#34d399" /><Cell fill="#27272a" />
+                        </Pie>
+                        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fill="#d4d4d8" fontSize={22} fontWeight={600}>
+                          {stats.overallRate}%
+                        </text>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="col-span-3 border-0 bg-transparent shadow-none">
+                  <CardContent className="p-2">
+                    <h3 className="text-xs text-zinc-500 mb-1">维度达标</h3>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <RadarChart data={stats.habitCompletion}>
+                        <PolarGrid stroke="#3f3f46" />
+                        <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: "#a1a1aa" }} />
+                        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                        <Radar dataKey="rate" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.12} strokeWidth={1.5} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Bar Chart */}
+              <div>
+                <h3 className="text-xs text-zinc-500 mb-2">习惯完成率</h3>
+                <ResponsiveContainer width="100%" height={150}>
+                  <BarChart data={stats.monthlyBar} barSize={28}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
+                    <Bar dataKey="完成" stackId="a" fill="#34d399" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="未完成" stackId="a" fill="#27272a" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
 
