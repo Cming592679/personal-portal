@@ -8,15 +8,15 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { title, description, status, priority, due_date } = await req.json();
+  const { title, description, quadrant, status, priority, due_date } = await req.json();
   if (!title) return NextResponse.json({ error: "title required" }, { status: 400 });
 
   const db = getDb();
   const result = db
     .prepare(
-      "INSERT INTO tasks (title, description, status, priority, due_date) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO tasks (title, description, quadrant, status, priority, due_date) VALUES (?, ?, ?, ?, ?, ?)"
     )
-    .run(title, description ?? "", status ?? "todo", priority ?? "medium", due_date ?? null);
+    .run(title, description ?? "", quadrant ?? "career", status ?? "todo", priority ?? "medium", due_date ?? null);
 
   const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(result.lastInsertRowid);
   return NextResponse.json(task, { status: 201 });

@@ -11,15 +11,8 @@ import { toast } from "sonner";
 import { Plus, Trash2, Save, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Task { id: number; title: string; description: string; status: "todo" | "doing" | "done"; priority: "low" | "medium" | "high"; due_date: string | null; }
 interface Transaction { id: number; type: "income" | "expense"; amount: number; category: string; note: string; date: string; }
 
-const COLUMNS: { key: Task["status"]; label: string; color: string }[] = [
-  { key: "todo", label: "待办", color: "border-zinc-500" },
-  { key: "doing", label: "进行中", color: "border-amber-500" },
-  { key: "done", label: "已完成", color: "border-emerald-500" },
-];
-const PRIORITY: Record<string, string> = { high: "bg-red-500/10 text-red-400", medium: "bg-amber-500/10 text-amber-400", low: "bg-zinc-500/10 text-zinc-400" };
 const CATEGORIES = ["餐饮","交通","购物","住房","娱乐","医疗","教育","订阅","其他"];
 
 export default function CareerPage() {
@@ -31,78 +24,14 @@ export default function CareerPage() {
       </div>
       <Tabs defaultValue="tasks">
         <TabsList className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-1">
-          <TabsTrigger value="tasks" className="text-sm rounded-lg">任务看板</TabsTrigger>
           <TabsTrigger value="finance" className="text-sm rounded-lg">记账</TabsTrigger>
           <TabsTrigger value="review" className="text-sm rounded-lg">KPT 回顾</TabsTrigger>
           <TabsTrigger value="subscriptions" className="text-sm rounded-lg">订阅</TabsTrigger>
         </TabsList>
-        <TabsContent value="tasks" className="mt-4"><KanbanBoard /></TabsContent>
         <TabsContent value="finance" className="mt-4"><FinanceTracker /></TabsContent>
         <TabsContent value="review" className="mt-4"><KptReview /></TabsContent>
         <TabsContent value="subscriptions" className="mt-4"><SubscriptionTracker /></TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function KanbanBoard() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTitle, setNewTitle] = useState("");
-
-  const fetchTasks = useCallback(async () => { const r = await fetch("/api/tasks"); setTasks(await r.json()); }, []);
-  useEffect(() => { fetchTasks(); }, [fetchTasks]);
-
-  const addTask = async () => {
-    if (!newTitle.trim()) return;
-    await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: newTitle }) });
-    setNewTitle(""); toast("任务已创建"); fetchTasks();
-  };
-  const moveTask = async (id: number, status: Task["status"]) => {
-    await fetch(`/api/tasks/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); fetchTasks();
-  };
-  const deleteTask = async (id: number) => { await fetch(`/api/tasks/${id}`, { method: "DELETE" }); fetchTasks(); };
-
-  const tasksByColumn = (key: Task["status"]) => tasks.filter(t => t.status === key);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask()}
-          placeholder="新任务..." className="bg-zinc-800/50 border-zinc-700/50 rounded-xl text-sm" />
-        <Button onClick={addTask} size="sm" className="shrink-0 rounded-xl text-sm"><Plus size={16} className="mr-1" />添加</Button>
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        {COLUMNS.map(({ key, label, color }) => (
-          <div key={key} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-zinc-400">{label}</span>
-              <Badge variant="outline" className="text-xs">{tasksByColumn(key).length}</Badge>
-            </div>
-            <div className={`space-y-2 min-h-[120px] rounded-xl border-l-2 ${color} bg-zinc-800/30 p-2`}>
-              {tasksByColumn(key).map((task) => (
-                <Card key={task.id} className="border-zinc-700/50 bg-zinc-800/60 rounded-xl">
-                  <CardContent className="p-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm text-zinc-200">{task.title}</p>
-                      <button onClick={() => deleteTask(task.id)} className="text-zinc-500 hover:text-red-400 shrink-0 mt-0.5"><Trash2 size={14} /></button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded", PRIORITY[task.priority])}>
-                        {task.priority === "high" ? "高" : task.priority === "medium" ? "中" : "低"}
-                      </span>
-                      {task.due_date && <span className="text-xs text-zinc-500">{task.due_date}</span>}
-                    </div>
-                    <Select value={task.status} onValueChange={(v) => v && moveTask(task.id, v as Task["status"])}>
-                      <SelectTrigger className="h-7 text-xs bg-zinc-700/50 border-zinc-600/50 rounded-lg"><SelectValue /></SelectTrigger>
-                      <SelectContent>{COLUMNS.map(c => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -22,6 +22,7 @@ function initSchema(db: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
+      quadrant TEXT DEFAULT 'career' CHECK(quadrant IN ('mental','career','body','spirit')),
       status TEXT DEFAULT 'todo' CHECK(status IN ('todo','doing','done')),
       priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
       project_id INTEGER,
@@ -138,6 +139,9 @@ function initSchema(db: Database.Database) {
       created_at TEXT DEFAULT (datetime('now','localtime'))
     );
   `);
+
+  // Migration: add quadrant column to tasks if missing
+  try { db.exec("ALTER TABLE tasks ADD COLUMN quadrant TEXT DEFAULT 'career' CHECK(quadrant IN ('mental','career','body','spirit'))"); } catch {}
 
   // Seed default habits if none exist
   const habitCount = db.prepare('SELECT COUNT(*) as count FROM habits').get() as { count: number };

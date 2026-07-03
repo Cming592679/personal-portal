@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Brain, Briefcase, Heart, Users, Dumbbell, BookOpen, Apple, Moon, Sunrise, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TaskKanban } from "@/components/task-kanban";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -165,6 +166,9 @@ export default function DashboardPage() {
           );
         })}
       </div>
+
+      {/* Task Kanban */}
+      <TaskKanban />
 
       {/* Monthly Stats */}
       {stats && (
