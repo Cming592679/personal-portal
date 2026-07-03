@@ -106,7 +106,7 @@ export default function DashboardPage() {
           <CardContent className="p-4 space-y-3">
             <h2 className="text-sm font-medium text-zinc-300">状态</h2>
             <div className="flex gap-2">
-              {[{ level: 1, e: "🔴", l: "枯竭" }, { level: 2, e: "🟡", l: "勉强" }, { level: 3, e: "🟢", l: "还行" }].map(({ level, e, l }) => (
+              {[{ level: 1, e: "🔴", l: "枯竭" }, { level: 2, e: "🟡", l: "还行" }, { level: 3, e: "🟢", l: "活力无限" }].map(({ level, e, l }) => (
                 <button key={level} onClick={() => saveEnergy(level)}
                   className={cn("flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all",
                     energy === level ? "border-white/30 bg-zinc-700 text-white" : "border-zinc-700/50 bg-zinc-800/50 text-zinc-300 hover:border-zinc-600/50")}>
@@ -312,8 +312,8 @@ function MonthCalendar({ calendarMap, habits, onRefresh }: { calendarMap: StatsD
           </div>
           <div className="flex gap-5 mt-4 text-xs text-zinc-400">
             <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-red-400/30 inline-block" />枯竭</span>
-            <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-amber-400/20 inline-block" />勉强</span>
-            <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-emerald-400/20 inline-block" />还行</span>
+            <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-amber-400/20 inline-block" />还行</span>
+            <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-emerald-400/20 inline-block" />活力无限</span>
           </div>
         </CardContent>
       </Card>
@@ -333,7 +333,7 @@ function MonthCalendar({ calendarMap, habits, onRefresh }: { calendarMap: StatsD
               <div>
                 <p className="text-sm text-zinc-400 mb-2">状态</p>
                 <div className="flex gap-2">
-                  {[{ level: 1, e: "🔴", l: "枯竭" }, { level: 2, e: "🟡", l: "勉强" }, { level: 3, e: "🟢", l: "还行" }].map(({ level, e, l }) => (
+                  {[{ level: 1, e: "🔴", l: "枯竭" }, { level: 2, e: "🟡", l: "还行" }, { level: 3, e: "🟢", l: "活力无限" }].map(({ level, e, l }) => (
                     <button key={level} onClick={() => saveEditEnergy(level)}
                       className={cn("flex-1 py-2 rounded-xl border text-sm transition-all",
                         editEnergy === level ? "border-white/30 bg-zinc-700 text-white" : "border-zinc-700/50 bg-zinc-800/50 text-zinc-300 hover:border-zinc-600/50")}>
