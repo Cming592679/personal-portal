@@ -27,6 +27,20 @@ function initSchema(db: Database.Database) {
       priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
       project_id INTEGER,
       due_date TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now','localtime')),
+      updated_at TEXT DEFAULT (datetime('now','localtime')),
+      completed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS task_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      task_title TEXT DEFAULT '',
+      action TEXT NOT NULL CHECK(action IN ('created','status_change','note_update','deleted')),
+      old_value TEXT DEFAULT '',
+      new_value TEXT DEFAULT '',
+      note TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now','localtime'))
     );
 
@@ -142,6 +156,11 @@ function initSchema(db: Database.Database) {
 
   // Migration: add quadrant column to tasks if missing
   try { db.exec("ALTER TABLE tasks ADD COLUMN quadrant TEXT DEFAULT 'career' CHECK(quadrant IN ('mental','career','body','spirit'))"); } catch {}
+  // Migration: add sort_order for drag-and-drop reordering
+  try { db.exec("ALTER TABLE tasks ADD COLUMN sort_order INTEGER DEFAULT 0"); } catch {}
+  // Migration: add updated_at / completed_at for task log tracking
+  try { db.exec("ALTER TABLE tasks ADD COLUMN updated_at TEXT"); } catch {}
+  try { db.exec("ALTER TABLE tasks ADD COLUMN completed_at TEXT"); } catch {}
 
   // Seed default habits if none exist
   const habitCount = db.prepare('SELECT COUNT(*) as count FROM habits').get() as { count: number };

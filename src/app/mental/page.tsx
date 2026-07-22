@@ -15,8 +15,8 @@ export default function MentalPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-violet-500/10"><Brain size={22} className="text-violet-400" /></div>
-        <h1 className="text-xl font-medium text-zinc-200">心智</h1>
+        <div className="p-2.5 rounded-xl bg-violet-500/10"><Brain size={24} className="text-violet-400" /></div>
+        <h1 className="text-2xl font-medium text-foreground">心智</h1>
       </div>
       <div className="grid grid-cols-1 gap-6">
         <WikiSearch />
@@ -39,32 +39,32 @@ function WikiSearch() {
   useEffect(() => { search(""); }, [search]);
 
   const typeBadge = (type: string) => {
-    const colors: Record<string, string> = { concept: "bg-violet-500/10 text-violet-400", entity: "bg-amber-500/10 text-amber-400", source: "bg-zinc-500/10 text-zinc-400", synthesis: "bg-emerald-500/10 text-emerald-400" };
-    return colors[type] ?? "bg-zinc-500/10 text-zinc-400";
+    const colors: Record<string, string> = { concept: "bg-violet-500/10 text-violet-400", entity: "bg-amber-500/10 text-amber-400", source: "bg-zinc-500/10 text-muted-foreground", synthesis: "bg-emerald-500/10 text-emerald-400" };
+    return colors[type] ?? "bg-zinc-500/10 text-muted-foreground";
   };
 
   return (
-    <Card className="border-zinc-800/50 bg-zinc-900/60 rounded-2xl">
+    <Card className="border-border bg-card rounded-xl">
       <CardContent className="p-5 space-y-4">
-        <h2 className="text-base font-medium text-zinc-300 flex items-center gap-2"><Search size={18} />知识库搜索</h2>
+        <h2 className="text-lg font-medium text-foreground/90 flex items-center gap-2"><Search size={20} />知识库搜索</h2>
         <form onSubmit={(e) => { e.preventDefault(); search(query); }} className="flex gap-2">
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索概念、实体、来源..."
-            className="bg-zinc-800/50 border-zinc-700/50 rounded-xl text-sm" />
-          <Button type="submit" size="sm" className="shrink-0 rounded-xl text-sm">搜索</Button>
+            className="bg-muted border-border rounded-xl text-base" />
+          <Button type="submit" size="sm" className="shrink-0 rounded-xl text-base">搜索</Button>
         </form>
         <div className="space-y-2 max-h-96 overflow-auto">
           {results.map((r, i) => (
-            <div key={i} className="p-3 rounded-xl bg-zinc-800/40 hover:bg-zinc-800/60 transition-colors">
+            <div key={i} className="p-3 rounded-xl bg-muted/80 hover:bg-[#1c2129] transition-colors">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-sm font-medium text-zinc-200">{r.title}</span>
-                <Badge className={cn("text-[10px]", typeBadge(r.type))}>{r.type}</Badge>
-                {r.status === "uncertain" && <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-400/30">uncertain</Badge>}
+                <span className="text-base font-medium text-foreground">{r.title}</span>
+                <Badge className={cn("text-xs", typeBadge(r.type))}>{r.type}</Badge>
+                {r.status === "uncertain" && <Badge variant="outline" className="text-xs text-amber-400 border-amber-400/30">uncertain</Badge>}
               </div>
-              <p className="text-sm text-zinc-400">{r.summary}</p>
-              {r.aliases && r.aliases !== "-" && <p className="text-xs text-zinc-500 mt-1">别名: {r.aliases}</p>}
+              <p className="text-base text-muted-foreground">{r.summary}</p>
+              {r.aliases && r.aliases !== "-" && <p className="text-sm text-muted-foreground mt-1">别名: {r.aliases}</p>}
             </div>
           ))}
-          {results.length === 0 && <p className="text-sm text-zinc-500 py-4 text-center">无结果</p>}
+          {results.length === 0 && <p className="text-base text-muted-foreground py-4 text-center">无结果</p>}
         </div>
       </CardContent>
     </Card>
@@ -85,21 +85,21 @@ function QuickNotes() {
   };
 
   return (
-    <Card className="border-zinc-800/50 bg-zinc-900/60 rounded-2xl">
+    <Card className="border-border bg-card rounded-xl">
       <CardContent className="p-5 space-y-4">
-        <h2 className="text-base font-medium text-zinc-300">快速笔记</h2>
+        <h2 className="text-lg font-medium text-foreground/90">快速笔记</h2>
         <div className="space-y-3">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="标题"
-            className="bg-zinc-800/50 border-zinc-700/50 rounded-xl text-sm" />
+            className="bg-muted border-border rounded-xl text-base" />
           <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="内容..." rows={3}
-            className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-zinc-600 text-zinc-200 placeholder:text-zinc-500" />
-          <Button onClick={saveNote} disabled={!title.trim()} size="sm" className="rounded-xl text-sm"><Plus size={16} className="mr-1" />保存</Button>
+            className="w-full bg-muted border border-border rounded-xl p-3 text-base resize-none focus:outline-none focus:border-zinc-600 text-foreground placeholder:text-muted-foreground" />
+          <Button onClick={saveNote} disabled={!title.trim()} size="sm" className="rounded-xl text-base"><Plus size={18} className="mr-1" />保存</Button>
         </div>
         <div className="space-y-1 max-h-48 overflow-auto">
           {notes.slice(0, 15).map((n) => (
-            <div key={n.id} className="p-2.5 rounded-lg hover:bg-zinc-800/40 text-sm">
-              <p className="text-zinc-200">{n.title}</p>
-              <p className="text-zinc-500 mt-0.5 line-clamp-1">{n.content}</p>
+            <div key={n.id} className="p-2.5 rounded-lg hover:bg-muted/80 text-base">
+              <p className="text-foreground">{n.title}</p>
+              <p className="text-muted-foreground mt-0.5 line-clamp-1">{n.content}</p>
             </div>
           ))}
         </div>
