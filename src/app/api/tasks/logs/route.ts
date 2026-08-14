@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getDataPath } from "@/lib/data-dir";
 import fs from "fs";
 import path from "path";
 
-const LOGS_DIR = path.join(process.cwd(), "data", "task-logs");
+function getLogsDir() {
+  return getDataPath("task-logs");
+}
 
 function ensureDir() {
-  if (!fs.existsSync(LOGS_DIR)) {
-    fs.mkdirSync(LOGS_DIR, { recursive: true });
+  const logsDir = getLogsDir();
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
   }
 }
 
@@ -86,18 +90,19 @@ export async function GET(req: NextRequest) {
 
   if (save) {
     ensureDir();
+    const logsDir = getLogsDir();
     // 保存 JSON
-    const jsonPath = path.join(LOGS_DIR, `${month}.json`);
+    const jsonPath = path.join(logsDir, `${month}.json`);
     fs.writeFileSync(jsonPath, JSON.stringify(logs, null, 2), "utf-8");
     // 保存 Markdown
-    const mdPath = path.join(LOGS_DIR, `${month}.md`);
+    const mdPath = path.join(logsDir, `${month}.md`);
     const md = generateMarkdown(logs, month);
     fs.writeFileSync(mdPath, md, "utf-8");
     return NextResponse.json({
       ok: true,
       count: logs.length,
       saved: [`${month}.json`, `${month}.md`],
-      dir: LOGS_DIR,
+      dir: logsDir,
     });
   }
 

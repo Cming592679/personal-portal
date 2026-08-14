@@ -72,7 +72,7 @@ export default function TaskLogTimeline() {
     const res = await fetch(`/api/tasks/logs?month=${month}&save=1`);
     const data = await res.json();
     if (data.ok) {
-      alert(`已导出 ${data.count} 条记录到 data/task-logs/`);
+      alert(`已导出 ${data.count} 条记录到 ${data.dir}`);
     }
   }
 

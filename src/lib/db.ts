@@ -1,13 +1,15 @@
 import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
-
-const DB_PATH = path.join(process.cwd(), 'data', 'portal.db');
+import { getDataPath } from './data-dir';
 
 let db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
   if (!db) {
-    db = new Database(DB_PATH);
+    const dbPath = getDataPath('portal.db');
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
     initSchema(db);
@@ -150,6 +152,14 @@ function initSchema(db: Database.Database) {
       keep_text TEXT DEFAULT '',
       problem_text TEXT DEFAULT '',
       try_text TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    );
+
+    -- Activity / Daily
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT NOT NULL,
+      task_id INTEGER,
       created_at TEXT DEFAULT (datetime('now','localtime'))
     );
   `);

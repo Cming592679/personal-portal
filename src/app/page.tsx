@@ -319,6 +319,12 @@ function ScratchPad() {
     saveItems(items.filter((_, idx) => idx !== i));
   };
 
+  const clearDone = () => {
+    saveItems(items.filter((item) => !item.done));
+  };
+
+  const doneCount = items.filter((i) => i.done).length;
+
   return (
     <Card className="border-border bg-card rounded-xl">
       <CardContent className="p-4">
@@ -339,8 +345,9 @@ function ScratchPad() {
                     {item.text}
                   </span>
                   <button onClick={() => delItem(i)}
-                    className="text-muted-foreground/30 hover:text-danger opacity-0 group-hover:opacity-100 transition-all">
-                    <X size={12} />
+                    title="删除"
+                    className="text-red-400/60 hover:text-red-300 hover:bg-red-400/10 rounded p-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                    <X size={14} />
                   </button>
                 </div>
               ))}
@@ -348,7 +355,7 @@ function ScratchPad() {
                 <p className="text-xs text-muted-foreground/50">列表为空</p>
               )}
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
               <input
                 value={newItem}
                 onChange={(e) => setNewItem(e.target.value)}
@@ -360,6 +367,12 @@ function ScratchPad() {
                 className="text-xs text-semantic-blue hover:text-semantic-green disabled:text-muted-foreground/30 transition-colors shrink-0">
                 添加
               </button>
+              {doneCount > 0 && (
+                <button onClick={clearDone}
+                  className="text-xs text-red-400/70 hover:text-red-300 transition-colors shrink-0 whitespace-nowrap">
+                  🗑 清理({doneCount})
+                </button>
+              )}
             </div>
           </div>
 
