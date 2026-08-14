@@ -1,12 +1,12 @@
-# Personal Portal — 个人管理门户
+# Personal Portal
 
-个人生活管理系统，覆盖职业、身体、心理、精神四个维度的日常追踪与回顾。
+一个本地运行、个人数据独立存储的个人管理工具。
 
-技术栈：Next.js + TypeScript + SQLite + shadcn/ui。
+代码公开，数据私有。日常使用只有两个动作：**记下要做的（Task）**，**记下发生的（Daily）**。
 
 ---
 
-## 快速开始（新电脑）
+## 快速开始
 
 ```bash
 # 1. clone 代码
@@ -16,120 +16,244 @@ cd personal-portal
 # 2. 安装依赖
 npm install
 
-# 3. 创建个人数据目录（可放在任意位置，例如家目录下）
-mkdir -p ~/personal-portal-data
-
-# 4.（换电脑时）把旧电脑的个人数据复制进来
-#    例如：~/personal-portal-data/portal.db、~/personal-portal-data/task-logs/
-
-# 5. 配置数据路径
+# 3. 配置个人数据目录
 cp .env.example .env.local
 #    编辑 .env.local，设置：
 #    PERSONAL_DATA_DIR=/home/<you>/personal-portal-data
 
-# 6. 启动
+# 4.（换电脑时）把旧电脑的个人数据复制到该目录
+#    personal-portal-data/portal.db、personal-portal-data/task-logs/ 等
+
+# 5. 启动
 npm run dev
 # 打开 http://localhost:3000
 ```
 
-> 换电脑 ≠ 改代码。换电脑 = clone 代码 + 恢复个人数据 + 配置数据路径。
+> **代码与个人数据永久分离**：代码在 Git 仓库里，个人数据在 `PERSONAL_DATA_DIR` 里，两者互不相混。GitHub 上永远看不到你的个人数据。
 
 ---
 
-## 个人数据与代码永久分离
+## 每天怎么用
 
-- **代码仓库**（Git Repository）只保存：应用代码、UI、API、数据库 schema / migration、配置模板、文档。
-- **个人数据**（Personal Data）永远不会进入 Git，集中存放在 `PERSONAL_DATA_DIR` 指定的外部目录。
+日常只有两个动作：
 
-```
-personal-portal/               ← 公开代码仓库（可随时 clone / pull）
-└── src/ public/ package.json .env.example ...
+1. **Task**：记录「我要做什么」
+2. **Daily**：记录「实际发生了什么」
 
-PERSONAL_DATA_DIR/             ← 真实个人数据（独立备份 / 迁移 / 恢复，永不进 Git）
-├── portal.db                  # SQLite 数据库（Task / Activity / Notes / Habits …）
-├── task-logs/                 # 任务日志月度导出（json / md）
-└── future-data/               # 未来：attachments / exports / media …
-```
-
-个人数据目录由环境变量 `PERSONAL_DATA_DIR` 指定（**仅服务器端**，不暴露给浏览器）：
+最简单的工作流：
 
 ```
-PERSONAL_DATA_DIR=/home/<you>/personal-portal-data
+想到一个明确要做的事        → 创建 Task
+正在推进这件事              → 正常推进
+过程中发现的信息/命令/问题/想法 → 直接记一条 Activity
+事情完成                    → Task 标记完成
 ```
 
-- 数据库最终路径：`${PERSONAL_DATA_DIR}/portal.db`
-- 任务日志导出：`${PERSONAL_DATA_DIR}/task-logs/`
-- 未来其他个人数据也应放在 `${PERSONAL_DATA_DIR}/...` 下。
-- 真实路径写在本地 `.env.local`（已被 `.gitignore` 忽略）；仓库只提交 `.env.example` 示例。
-- 如果未配置 `PERSONAL_DATA_DIR`，程序启动时会给出明确报错，而**不会**静默回退到项目目录 `data/`。
+打开网站后，直接进 **工作台**（侧边栏「⚡ 工作台」），一页就能建 Task + 记 Activity，不用来回切换。
 
 ---
 
-## 功能模块
+## Task 怎么用
 
-| 模块 | 路由 | 用途 |
+Task 管的是「需要完成的事」。入口在首页 `/`（Task 看板），或在工作台快速创建。
+
+- **创建**：输入标题 → Enter（或「添加」）。可选象限（工作/心智/身体/精神）和优先级（高/中/低），默认「工作 / 中」。
+- **三列**：`待办` = 还没开始；`进行中` = 正在做；`已完成` = 做完了。
+- **改状态**：卡片上的状态下拉，或直接把卡片**拖到对应列**。
+- **删除**：卡片右上角垃圾桶图标。
+- **优先级**：卡片上的 🔴高 / 🟡中 / 🟢低 下拉。
+- **备注**：点卡片左侧展开箭头，写一段备注，失焦自动保存。
+- **Task Log**：看板右上角「日志」按钮，查看所有任务的操作历史（创建/状态变更/备注/删除）。
+- **截止时间**：当前 UI 没有设置入口（数据库字段已预留，后续再补）。
+
+> **Task 和 Activity 的区别**：Task 是「要做的事」，Activity 是「已经发生的事」。解决同一个问题时，Task 只有一条，但过程中可以记很多条 Activity。
+
+---
+
+## Daily 怎么用
+
+Daily **不是日记**。它是一个低摩擦的「发生记录」。
+
+可以记录任何东西：
+
+- 做过什么、学到什么、遇到什么、解决了什么
+- 一个突然冒出来的想法
+- 一个需要以后处理的问题
+- 工作中的 Debug 过程
+- 生活中的琐事
+- 任何不值得建 Task、但又不想让它消失的东西
+
+核心操作：
+
+```
+输入 → Enter → 完成
+```
+
+不要分类、不要整理、不要写完整文章。
+
+---
+
+## Daily 的时间线怎么用
+
+- 默认**查看全部** Activity，按天分组、倒序排列。
+- 可以**按日期筛选**（选某一天只看当天）。
+- 每条记录带**时间**（HH:MM）。
+- 记错了可以**删除**（鼠标悬停条目，点右侧 ×）。
+- 当前 Activity 是**原始记录**，不会自动变成知识库。
+
+> Daily 第一阶段的目标是「留下痕迹」，不是「立即整理」。先记下来，整理是以后的事。
+
+---
+
+## Daily 与 AI 的关系
+
+### 当前版本
+
+目前 Daily 只做三件事：**记录 → 保存 → 查看**。
+
+**当前没有自动 AI 总结，没有任何 AI 功能。**
+
+### 未来的使用方式（规划中，尚未实现）
+
+```
+Daily 原始记录
+    ↓  积累一段时间
+AI Review
+    ↓  提炼出
+- 工作经验 / Debug 方法 / 技术知识
+- 项目进展 / 重复出现的问题
+- 值得形成文档 / 作品集的内容
+- 长期目标 / 想法
+    ↓
+进入知识库 / Project / Portfolio 等长期资产
+```
+
+> Daily 本身不是最终知识库，它是**原始素材**。记录时不需要做任何知识整理。
+
+---
+
+## AI Review 的触发方式
+
+> **当前版本尚未实现 AI Review**，因此目前没有自动触发方式，也没有 AI 按钮。
+
+未来计划（尚未实现）优先设计为**手动触发**，而不是每天自动触发：
+
+每周找个合适时间，手动点一次「Review 本周」，AI 读取最近 7 天的 Tasks / Task Logs / Activities，生成：
+
+- **本周完成**：实际完成了什么
+- **本周解决的问题**：哪些 Debug / 问题处理值得沉淀
+- **本周形成的知识**：有哪些新知识
+- **本周反复出现的问题**：哪些问题重复出现
+- **值得进入知识库**：哪些已经从流水账变成可长期保存的知识
+- **值得进入作品集**：哪些工作已形成可展示成果
+- **一直在想但没有行动**：哪些连续多周出现却没变成 Task / Project
+- **下周建议**：最多少量建议，不自动创建大量任务
+
+> AI Review 的目标不是替你安排人生，而是**从你真实发生过的事情里提炼信息**。
+
+---
+
+## 一次完整的日常使用示例
+
+```
+09:20  创建 Task：「调查 OBE HDMI 异常重启问题」
+10:15  Daily：「发现 UFS error code 5」
+11:30  Daily：「自测 20 次未复现」
+14:10  Daily：「想到可能和 Runtime PM 有关」
+15:00  继续推进 Task
+17:30  Task 标记完成
+18:00  Daily：「最终确认是 UFS runtime PM 与 HDMI 的冲突」
+```
+
+一眼就能看出：**Task = 我要做什么，Activity = 我实际经历了什么。**
+
+---
+
+## Task + Daily 的使用原则
+
+不要把所有的 Activity 都变成 Task。
+
+- 「发现一个好用的命令」—— 记 Activity 就行，不一定建 Task
+- 「想到一个产品想法」—— 记 Activity 就行
+- 「今天解决了一个 Bug」—— 记 Activity 就行
+- 「**我要整理这个 Bug 的解决过程**」—— 这才应该建 Task
+
+> **Task 用于需要行动的事。Activity 用于留下发生过的事。**
+
+---
+
+## 数据与迁移
+
+- **代码**：`git clone` / `git pull`
+- **个人数据**：`PERSONAL_DATA_DIR` 指向的目录
+- **换电脑**：clone 代码 + 恢复个人数据 + 配置路径，即可
+
+```
+PERSONAL_DATA_DIR/
+├── portal.db        # SQLite（Task / Activity / 笔记 / 习惯 …）
+├── task-logs/       # 任务日志月度导出（json / md）
+└── future-data/     # 未来：attachments / exports / media …
+```
+
+真实路径写在本地 `.env.local`（已被 gitignore），仓库只提交 `.env.example` 示例。
+
+---
+
+## 常见问题（FAQ）
+
+**为什么 Daily 不需要分类？**
+因为记录优先于整理。一分类，摩擦就上来了，你就不想记了。
+
+**什么东西应该创建 Task？**
+需要实际行动、以后需要完成的事。
+
+**什么东西应该写 Daily？**
+已经发生的事、发现、经验、想法、零碎信息。
+
+**Daily 是不是日记？**
+不是。它更像 Activity Stream（操作/发生记录流）。
+
+**我是不是每天都必须写 Daily？**
+不是。想到就记。
+
+**Daily 会不会自动整理成知识？**
+当前不会。未来通过 AI Review 实现（未实现）。
+
+**AI Review 是每天运行吗？**
+当前未实现。未来建议以手动周期 Review 为主，不是强制每天自动运行。
+
+**数据在哪里？**
+`PERSONAL_DATA_DIR`。
+
+**换电脑怎么办？**
+代码重新 clone，个人数据单独恢复，改一下 `.env.local` 路径。
+
+**GitHub 上为什么看不到我的个人数据？**
+这是设计目标——个人数据永不进入 Git。
+
+---
+
+## 当前功能
+
+| 功能 | 状态 | 用途 |
 |------|------|------|
-| 首页 | `/` | 今日概览，任务看板 + 时间线 |
-| 日常 | `/daily` | 低摩擦 Activity 流：快速记录「实际发生了什么」 |
-| 职业 | `/career` | 工作任务、学习进度、技术积累 |
-| 身体 | `/body` | 运动、饮食、睡眠、体重追踪 |
-| 心理 | `/mental` | 情绪日志、冥想、感恩记录 |
-| 精神 | `/spirit` | 阅读、写作、创作、深度思考 |
-| 设置 | `/settings` | 系统偏好、数据导出 |
-
-### 任务管理
-
-- 看板视图（待办 / 进行中 / 已完成）
-- 时间线视图（操作日志追溯）
-- 支持标签、优先级、截止日期
-
-### Activity / Daily
-
-- Task 记录「准备做什么」，Activity 记录「实际发生了什么」
-- 输入 → Enter → 完成，不要求分类 / 标签 / 项目 / 优先级 / 情绪 / 时长
+| 工作台 `/workbench` | 已实现 | 一页内快速创建 Task + 记录 Activity |
+| Task 看板（首页 `/`） | 已实现 | 管理待办 / 进行中 / 已完成，拖拽排序 |
+| Daily `/daily` | 已实现 | 记录实际发生的事，按时间线查看 |
+| Task Log | 已实现 | 任务操作历史 + 月度导出 |
+| 习惯打卡 / 能量状态 | 已实现 | 首页 + 身体模块 |
+| 记账 / KPT 回顾 / 订阅 | 已实现（实验） | 首页工具面板 |
+| 笔记 / 知识库搜索 / 联系人 / 运动 | 已实现（实验） | 心智 / 精神 / 身体模块 |
+| AI Review | 未实现（规划中） | 从真实记录中提炼信息 |
 
 ---
 
-## 项目结构（代码）
+## 未来计划
 
-```
-personal-portal/
-├── src/
-│   ├── app/              # Next.js App Router 页面
-│   │   ├── layout.tsx    #   全局布局（侧边栏 + 内容区）
-│   │   ├── page.tsx      #   首页：任务看板 + 时间线
-│   │   ├── daily/        #   Daily / Activity
-│   │   ├── career/       #   职业模块
-│   │   ├── body/         #   身体模块
-│   │   ├── mental/       #   心理模块
-│   │   ├── spirit/       #   精神模块
-│   │   └── settings/     #   设置
-│   ├── components/
-│   │   ├── ui/           #   shadcn/ui 基础组件
-│   │   ├── sidebar.tsx   #   侧边栏导航
-│   │   ├── task-kanban.tsx        #   任务看板
-│   │   └── task-log-timeline.tsx  #   操作时间线
-│   └── lib/
-│       ├── db.ts         #   SQLite 数据库访问（统一入口 getDb）
-│       ├── data-dir.ts   #   个人数据路径 helper（PERSONAL_DATA_DIR）
-│       └── utils.ts      #   工具函数
-├── .env.example          #   配置模板（示例路径，不含真实数据）
-├── components.json       #   shadcn/ui 配置
-├── next.config.ts
-└── package.json
-```
+- AI Weekly Review（手动触发）
+- Activity → Knowledge 提炼
+- Activity → Portfolio 提炼
+- Task / Activity 关联
+- 基于长期真实数据，重新评估哪些模块真正有用、哪些该裁剪
 
-> 数据库文件 `portal.db` 与 `task-logs/` 已不在项目目录，全部位于 `PERSONAL_DATA_DIR`。
-
----
-
-## 设计理念
-
-- **轻量自托管**：本地 SQLite，不依赖云服务，数据完全私有
-- **Code 与 Data 解耦**：代码可公开分享，个人数据独立备份迁移，永不相混
-- **四维平衡**：不只追踪工作产出，同时关注身心状态
-- **习惯先行**：工具服务于习惯养成，而非替代习惯
-
----
-
-> 私人工具，不做多用户支持。个人数据在本地 `PERSONAL_DATA_DIR`，定期备份该目录即可。
+> 原则：**先使用，再根据真实数据决定系统该长成什么样**，不根据想象提前堆功能。
