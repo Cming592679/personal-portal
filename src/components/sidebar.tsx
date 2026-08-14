@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link"; import { usePathname } from "next/navigation"; import { cn } from "@/lib/utils";
-import { Brain, Briefcase, Heart, Users, LayoutDashboard, Settings, Activity } from "lucide-react";
+import { Brain, Briefcase, Heart, Users, LayoutDashboard, Settings, Activity, Zap } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "仪表盘", icon: LayoutDashboard, color: "text-semantic-blue", bg: "bg-semantic-blue/10", border: "border-semantic-blue" },
+  { href: "/workbench", label: "工作台", icon: Zap, color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-400" },
   { href: "/daily", label: "日常", icon: Activity, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-400" },
   { href: "/mental", label: "心智", icon: Brain, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-400" },
   { href: "/career", label: "职业", icon: Briefcase, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-400" },
