@@ -1,25 +1,20 @@
 "use client";
 
 import Link from "next/link"; import { usePathname } from "next/navigation"; import { cn } from "@/lib/utils";
-import { Brain, Briefcase, Heart, Users, LayoutDashboard, Settings, Activity, Zap } from "lucide-react";
+import { CalendarDays, Zap, Settings } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "仪表盘", icon: LayoutDashboard, color: "text-semantic-blue", bg: "bg-semantic-blue/10", border: "border-semantic-blue" },
-  { href: "/workbench", label: "工作台", icon: Zap, color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-400" },
-  { href: "/daily", label: "日常", icon: Activity, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-400" },
-  { href: "/mental", label: "心智", icon: Brain, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-400" },
-  { href: "/career", label: "职业", icon: Briefcase, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-400" },
-  { href: "/body", label: "身体", icon: Heart, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-400" },
-  { href: "/spirit", label: "精神", icon: Users, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-400" },
+  { href: "/", label: "回顾", icon: CalendarDays, color: "text-semantic-blue", border: "border-semantic-blue" },
+  { href: "/workbench", label: "工作台", icon: Zap, color: "text-sky-400", border: "border-sky-400" },
 ];
-const bottomItem = { href: "/settings", label: "设置", icon: Settings, color: "text-semantic-muted", bg: "bg-zinc-500/10", border: "border-zinc-500" };
+const bottomItem = { href: "/settings", label: "设置", icon: Settings, color: "text-semantic-muted", border: "border-zinc-500" };
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
     <aside className="w-20 border-r border-border flex flex-col items-center py-5 gap-1.5 shrink-0">
-      {navItems.map(({ href, label, icon: Icon, color, bg, border }) => {
+      {navItems.map(({ href, label, icon: Icon, color, border }) => {
         const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
           <Link key={href} href={href}
