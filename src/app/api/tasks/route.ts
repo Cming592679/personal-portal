@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const db = getDb();
+  const completedDate = req.nextUrl.searchParams.get("completed_date");
+  if (completedDate) {
+    const doneRows = db
+      .prepare("SELECT * FROM tasks WHERE status = 'done' AND date(completed_at) = ? ORDER BY completed_at DESC")
+      .all(completedDate);
+    return NextResponse.json(doneRows);
+  }
   const tasks = db.prepare("SELECT * FROM tasks ORDER BY sort_order ASC, created_at DESC").all();
   return NextResponse.json(tasks);
 }
