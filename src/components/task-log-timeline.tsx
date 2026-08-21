@@ -46,7 +46,6 @@ export default function TaskLogTimeline() {
   });
 
   useEffect(() => {
-    setLoading(true);
     fetch(`/api/tasks/logs?month=${month}`)
       .then((r) => r.json())
       .then((data) => {
@@ -153,7 +152,7 @@ export default function TaskLogTimeline() {
                       )}
                       {log.action === "note_update" && log.note && (
                         <span style={{ color: "#a1a1aa", fontSize: 12 }}>
-                          {" "}"{log.note}"
+                          {" "}“{log.note}”
                         </span>
                       )}
                       <span style={{ float: "right", fontSize: 11, color: "#52525b" }}>
