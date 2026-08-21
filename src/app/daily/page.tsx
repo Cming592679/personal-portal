@@ -5,13 +5,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Activity, Plus, X } from "lucide-react";
+import { Activity, Plus, X, BarChart3 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ActivityLog {
   id: number;
   content: string;
   task_id: number | null;
   created_at: string;
+}
+
+interface WeeklyData {
+  weekStart: string;
+  daysElapsed: number;
+  quadrant: Record<string, number>;
+  activityCount: number;
+  habitRate: number;
+  energyAvg: number | null;
+  energyDays: number;
 }
 
 function localDateStr(d: Date): string {
@@ -83,6 +94,8 @@ export default function DailyPage() {
         </div>
       </div>
 
+      <WeeklyOverview />
+
       <Card className="border-border bg-card rounded-xl">
         <CardContent className="p-5 space-y-3">
           <form onSubmit={(e) => { e.preventDefault(); addActivity(); }} className="flex gap-2">
@@ -146,5 +159,66 @@ export default function DailyPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function WeeklyOverview() {
+  const [data, setData] = useState<WeeklyData | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/weekly")
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setData(d); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!data) return null;
+
+  const quadrants = [
+    { key: "career", label: "工作", icon: "💼", color: "text-amber-400" },
+    { key: "mental", label: "心智", icon: "🧠", color: "text-violet-400" },
+    { key: "body", label: "身体", icon: "💪", color: "text-emerald-400" },
+    { key: "spirit", label: "精神", icon: "🌟", color: "text-rose-400" },
+  ];
+
+  return (
+    <Card className="border-border bg-card rounded-xl">
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <BarChart3 size={16} />本周概览（{data.weekStart} 起）
+          </h2>
+          <span className="text-xs text-muted-foreground">{data.daysElapsed} 天 · 按四象限统计完成任务</span>
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          {quadrants.map(({ key, label, icon, color }) => (
+            <div key={key} className="text-center p-3 rounded-xl bg-muted border-l-[3px] border-l-semantic-blue">
+              <p className="text-sm">{icon} {label}</p>
+              <p className={cn("text-2xl font-semibold font-mono tabular-nums mt-1", color)}>{data.quadrant[key] ?? 0}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">完成</p>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="p-3 rounded-xl bg-muted">
+            <p className="text-xl font-semibold font-mono tabular-nums text-foreground">{data.activityCount}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Activity 条数</p>
+          </div>
+          <div className="p-3 rounded-xl bg-muted">
+            <p className="text-xl font-semibold font-mono tabular-nums text-foreground">{data.habitRate}%</p>
+            <p className="text-xs text-muted-foreground mt-0.5">习惯完成率</p>
+          </div>
+          <div className="p-3 rounded-xl bg-muted">
+            <p className="text-xl font-semibold font-mono tabular-nums text-foreground">
+              {data.energyAvg !== null ? data.energyAvg : "—"}
+              <span className="text-sm text-muted-foreground ml-0.5">{data.energyDays > 0 ? `/ ${data.energyDays}天` : ""}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">心力均值</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
