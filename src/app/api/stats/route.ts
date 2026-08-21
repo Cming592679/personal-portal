@@ -19,6 +19,12 @@ export async function GET() {
   const energyMap = db.prepare("SELECT date, level FROM energy_logs WHERE date >= ?").all(monthStart) as { date: string; level: number }[];
   const habitsAll = db.prepare("SELECT id, name FROM habits").all() as { id: number; name: string }[];
   const habitLogsMonth = db.prepare("SELECT hl.date, hl.habit_id FROM habit_logs hl WHERE hl.date >= ?").all(monthStart) as { date: string; habit_id: number }[];
+  const doneByDay = db.prepare(`
+    SELECT date(completed_at) as date, COUNT(*) as count
+    FROM tasks
+    WHERE status = 'done' AND completed_at IS NOT NULL AND date(completed_at) >= ?
+    GROUP BY date(completed_at)
+  `).all(monthStart) as { date: string; count: number }[];
 
   // Calendar map
   const habitByDate: Record<string, string[]> = {};
@@ -27,10 +33,14 @@ export async function GET() {
     const h = habitsAll.find((h) => h.id === log.habit_id);
     if (h) habitByDate[log.date].push(h.name);
   }
-  const calendarMap: Record<string, { energy: number | null; habits: string[] }> = {};
+  const calendarMap: Record<string, { energy: number | null; habits: string[]; doneCount?: number }> = {};
   for (const e of energyMap) calendarMap[e.date] = { energy: e.level, habits: habitByDate[e.date] ?? [] };
   for (const [date, names] of Object.entries(habitByDate)) {
     if (!calendarMap[date]) calendarMap[date] = { energy: null, habits: names };
+  }
+  for (const row of doneByDay) {
+    if (!calendarMap[row.date]) calendarMap[row.date] = { energy: null, habits: habitByDate[row.date] ?? [] };
+    calendarMap[row.date].doneCount = row.count;
   }
 
   // Per-habit completion (days done / days so far)
